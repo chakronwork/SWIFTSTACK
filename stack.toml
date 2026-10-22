@@ -1,0 +1,27 @@
+# stack.toml — Main configuration for webserver stack
+# This is the source of truth. All service configs are generated from this file.
+
+[general]
+profile = "dev"  # "dev" or "prod"
+language = "en"  # "en" or "th"
+
+[nginx]
+port      = 80
+ssl_port  = 443
+bind      = "127.0.0.1"
+
+[php]
+default_version     = "8.4"
+memory_limit        = "256M"
+upload_max_filesize = "64M"
+post_max_size       = "64M"
+max_execution_time  = 300
+display_errors      = true   # overridden by profile: dev=on, prod=off
+xdebug              = false
+
+[mariadb]
+port = 3306
+bind = "127.0.0.1"
+
+[phpmyadmin]
+enabled = true

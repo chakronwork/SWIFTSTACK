@@ -1,0 +1,28 @@
+# Binaries & build artifacts
+webserver.exe
+*.exe
+dist/
+bin/
+
+# Runtime data & secrets (CRITICAL)
+data/
+.secrets
+*.secrets
+
+# Logs, sessions, temp files
+logs/
+tmp/
+sessions/
+backups/
+
+# Config overrides
+conf/vhosts/*.conf
+conf/ssl/
+!conf/vhosts/.gitkeep
+!conf/ssl/.gitkeep
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

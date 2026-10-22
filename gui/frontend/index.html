@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SWIFTSTACK Dashboard</title>
+    <style>
+        :root {
+            --bg-dark: #0b1120;
+            --card-bg: #1e293b;
+            --border-color: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent: #38bdf8;
+            --accent-hover: #0284c7;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background: var(--bg-dark); color: var(--text-primary); display: flex; height: 100vh; overflow: hidden; user-select: none; }
+        
+        /* Sidebar */
+        aside { width: 230px; background: #060913; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; }
+        .logo { padding: 1.5rem 1.25rem; font-size: 1.25rem; font-weight: 800; color: var(--accent); display: flex; align-items: center; gap: 0.5rem; border-bottom: 1px solid var(--border-color); letter-spacing: 0.5px; }
+        .nav-links { list-style: none; padding: 1rem 0; flex: 1; }
+        .nav-item { padding: 0.75rem 1.25rem; display: flex; align-items: center; gap: 0.75rem; color: var(--text-secondary); cursor: pointer; transition: all 0.2s; font-size: 0.95rem; font-weight: 500; }
+        .nav-item:hover { color: var(--text-primary); background: rgba(56, 189, 248, 0.05); }
+        .nav-item.active { color: var(--accent); background: rgba(56, 189, 248, 0.1); border-left: 3px solid var(--accent); }
+
+        /* Main Content */
+        main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        header { height: 60px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 1.5rem; background: var(--card-bg); }
+        .header-title { font-size: 1.15rem; font-weight: 600; }
+        .top-actions { display: flex; gap: 0.75rem; align-items: center; }
+
+        .btn { padding: 0.5rem 1rem; border-radius: 6px; border: none; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.4rem; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-primary { background: var(--accent); color: #000; }
+        .btn-primary:hover { background: var(--accent-hover); color: #fff; }
+        .btn-success { background: var(--success); color: #000; }
+        .btn-success:hover { filter: brightness(1.1); }
+        .btn-danger { background: var(--danger); color: #fff; }
+        .btn-secondary { background: var(--border-color); color: var(--text-primary); }
+        .btn-secondary:hover { background: #475569; }
+        .btn-warning { background: var(--warning); color: #000; }
+
+        .content { flex: 1; padding: 1.5rem; overflow-y: auto; display: none; }
+        .content.active { display: block; }
+
+        .alert-box { padding: 1rem 1.25rem; border-radius: 8px; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; font-size: 0.9rem; }
+        .alert-warning { background: rgba(245, 158, 11, 0.15); border: 1px solid var(--warning); color: #fde68a; }
+
+        /* Service Cards Grid */
+        .grid-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem; }
+        .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; }
+        .service-title { font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; gap: 0.6rem; }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .status-running { background: var(--success); box-shadow: 0 0 8px var(--success); }
+        .status-stopped { background: #64748b; }
+        .status-error { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+        .service-meta { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6; }
+        .card-actions { display: flex; gap: 0.5rem; }
+
+        /* Sites Table */
+        .table-wrap { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
+        th, td { padding: 0.85rem 1.25rem; border-bottom: 1px solid var(--border-color); }
+        th { background: #162032; color: var(--text-secondary); font-weight: 600; }
+        tr:last-child td { border-bottom: none; }
+        .badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700; }
+        .badge-https { background: rgba(34, 197, 94, 0.15); color: var(--success); }
+        .badge-http { background: rgba(148, 163, 184, 0.15); color: var(--text-secondary); }
+
+        /* Toast notifications */
+        #toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 20px; border-radius: 8px; background: #1e293b; border: 1px solid var(--border-color); color: #fff; font-size: 0.9rem; display: none; z-index: 1000; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+    </style>
+</head>
+<body>
+    <aside>
+        <div class="logo">⚡ SWIFTSTACK</div>
+        <ul class="nav-links">
+            <li class="nav-item active" onclick="switchTab('dashboard')">📊 Dashboard</li>
+            <li class="nav-item" onclick="switchTab('sites')">🌐 Virtual Hosts</li>
+            <li class="nav-item" onclick="switchTab('php')">🐘 PHP Settings</li>
+            <li class="nav-item" onclick="switchTab('database')">🗄️ Database</li>
+            <li class="nav-item" onclick="switchTab('doctor')">🩺 Doctor</li>
+        </ul>
+    </aside>
+
+    <main>
+        <header>
+            <div class="header-title" id="page-title">Dashboard Overview</div>
+            <div class="top-actions">
+                <button class="btn btn-warning" onclick="triggerInit()">⚡ Download / Init Stack</button>
+                <button class="btn btn-success" onclick="startAllServices()">▶ Start All</button>
+                <button class="btn btn-danger" onclick="stopAllServices()">⏹ Stop All</button>
+            </div>
+        </header>
+
+        <!-- Tab 1: Dashboard -->
+        <div class="content active" id="tab-dashboard">
+            <div class="grid-cards">
+                <!-- Nginx -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="service-title">
+                            <span class="status-dot status-stopped" id="dot-nginx"></span>
+                            Nginx
+                        </div>
+                        <span class="badge badge-http" id="state-nginx">STOPPED</span>
+                    </div>
+                    <div class="service-meta">
+                        Port: <strong id="port-nginx">80, 443</strong><br>
+                        PID: <span id="pid-nginx">-</span><br>
+                        <span id="err-nginx" style="color:var(--danger);"></span>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary" onclick="controlService('nginx', 'start')">Start</button>
+                        <button class="btn btn-secondary" onclick="controlService('nginx', 'stop')">Stop</button>
+                        <button class="btn btn-secondary" onclick="controlService('nginx', 'restart')">Restart</button>
+                    </div>
+                </div>
+
+                <!-- PHP-CGI -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="service-title">
+                            <span class="status-dot status-stopped" id="dot-php"></span>
+                            PHP 8.4 (FastCGI)
+                        </div>
+                        <span class="badge badge-http" id="state-php">STOPPED</span>
+                    </div>
+                    <div class="service-meta">
+                        FastCGI Port: <strong id="port-php">9084</strong><br>
+                        PID: <span id="pid-php">-</span><br>
+                        <span id="err-php" style="color:var(--danger);"></span>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary" onclick="controlService('php', 'start')">Start</button>
+                        <button class="btn btn-secondary" onclick="controlService('php', 'stop')">Stop</button>
+                        <button class="btn btn-secondary" onclick="controlService('php', 'restart')">Restart</button>
+                    </div>
+                </div>
+
+                <!-- MariaDB -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="service-title">
+                            <span class="status-dot status-stopped" id="dot-mariadb"></span>
+                            MariaDB 11.4 LTS
+                        </div>
+                        <span class="badge badge-http" id="state-mariadb">STOPPED</span>
+                    </div>
+                    <div class="service-meta">
+                        Port: <strong id="port-mariadb">3306</strong><br>
+                        PID: <span id="pid-mariadb">-</span><br>
+                        <span id="err-mariadb" style="color:var(--danger);"></span>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary" onclick="controlService('mariadb', 'start')">Start</button>
+                        <button class="btn btn-secondary" onclick="controlService('mariadb', 'stop')">Stop</button>
+                        <button class="btn btn-secondary" onclick="controlService('mariadb', 'restart')">Restart</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Sites -->
+        <div class="content" id="tab-sites">
+            <div style="margin-bottom: 1rem; display: flex; justify-content: flex-end;">
+                <button class="btn btn-primary" onclick="addSitePrompt()">+ Add New Site</button>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Domain</th>
+                            <th>Protocol</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sites-tbody">
+                        <tr>
+                            <td><strong>localhost</strong></td>
+                            <td><span class="badge badge-http">HTTP (Port 80)</span></td>
+                            <td><button class="btn btn-secondary" onclick="window.open('http://localhost', '_blank')">Open in Browser</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab 3: PHP -->
+        <div class="content" id="tab-php">
+            <div class="card" style="max-width: 650px;">
+                <h3 style="margin-bottom: 0.5rem;">PHP 8.4 Configuration</h3>
+                <div class="service-meta">
+                    <p>• Memory Limit: <strong>256M</strong></p>
+                    <p>• Upload Max Filesize: <strong>64M</strong></p>
+                    <p>• Post Max Size: <strong>64M</strong></p>
+                    <p>• Timezone: <strong>Asia/Bangkok</strong></p>
+                    <p>• Expose PHP: <strong>Off (Hardened Security)</strong></p>
+                    <p>• Active Extensions: <strong>pdo_mysql, mysqli, curl, gd, mbstring, intl, zip, openssl, sodium</strong></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 4: Database -->
+        <div class="content" id="tab-database">
+            <div class="card" style="max-width: 650px;">
+                <h3 style="margin-bottom: 0.5rem;">MariaDB Connection</h3>
+                <div class="service-meta">
+                    <p>• Host: <strong>127.0.0.1</strong></p>
+                    <p>• Port: <strong>3306</strong></p>
+                    <p>• User: <strong>root</strong></p>
+                    <p>• Root Password: <strong id="db-root-pwd">••••••••••••••••••••••••</strong></p>
+                </div>
+                <div class="card-actions" style="margin-top: 1rem;">
+                    <button class="btn btn-primary" onclick="revealRootPassword()">Reveal Password</button>
+                    <button class="btn btn-secondary" onclick="resetRootPassword()">Reset Password</button>
+                    <button class="btn btn-secondary" onclick="window.open('http://localhost/phpmyadmin', '_blank')">Open phpMyAdmin</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 5: Doctor -->
+        <div class="content" id="tab-doctor">
+            <div class="card" style="max-width: 750px;">
+                <h3 style="margin-bottom: 1rem;">System Diagnostics</h3>
+                <div id="doctor-results" style="font-size: 0.9rem; line-height: 1.8;">
+                    Loading system report...
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="toast">Notification</div>
+
+    <script>
+        function showToast(msg, isError) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.style.borderColor = isError ? 'var(--danger)' : 'var(--accent)';
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 4000);
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.content').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById('tab-' + tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+
+            const titles = {
+                dashboard: 'Dashboard Overview',
+                sites: 'Virtual Host Management',
+                php: 'PHP Configuration',
+                database: 'Database & Credentials',
+                doctor: 'System Diagnostics'
+            };
+            document.getElementById('page-title').innerText = titles[tabId] || 'Dashboard';
+
+            if (tabId === 'doctor') loadDoctor();
+            if (tabId === 'sites') loadSites();
+        }
+
+        function controlService(name, action) {
+            fetch(`/api/control?service=${name}&action=${action}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success) {
+                        showToast(data.message || 'Operation failed', true);
+                    } else {
+                        showToast(`${name.toUpperCase()} ${action} completed`);
+                    }
+                    updateStatus();
+                })
+                .catch(err => showToast(err.toString(), true));
+        }
+
+        function startAllServices() {
+            showToast('Starting all services...');
+            fetch('/api/control?action=start_all')
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success) {
+                        showToast(data.message, true);
+                    } else {
+                        showToast('All services started successfully!');
+                    }
+                    updateStatus();
+                })
+                .catch(err => showToast(err.toString(), true));
+        }
+
+        function stopAllServices() {
+            fetch('/api/control?action=stop_all')
+                .then(r => r.json())
+                .then(data => {
+                    showToast('All services stopped');
+                    updateStatus();
+                })
+                .catch(err => showToast(err.toString(), true));
+        }
+
+        function triggerInit() {
+            if (confirm("Download and setup all stack components (Nginx, PHP, MariaDB, phpMyAdmin)?")) {
+                fetch('/api/init')
+                    .then(r => r.json())
+                    .then(data => {
+                        showToast(data.message);
+                    })
+                    .catch(err => showToast(err.toString(), true));
+            }
+        }
+
+        function updateStatus() {
+            fetch('/api/status')
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success && res.data) {
+                        ['nginx', 'php', 'mariadb'].forEach(svc => {
+                            const info = res.data[svc];
+                            if (!info) return;
+
+                            const dot = document.getElementById('dot-' + svc);
+                            const badge = document.getElementById('state-' + svc);
+                            const pid = document.getElementById('pid-' + svc);
+                            const errEl = document.getElementById('err-' + svc);
+
+                            if (dot && badge) {
+                                dot.className = 'status-dot status-' + info.state;
+                                badge.innerText = info.state.toUpperCase();
+                                badge.className = 'badge ' + (info.state === 'running' ? 'badge-https' : 'badge-http');
+                            }
+                            if (pid) {
+                                pid.innerText = info.pid > 0 ? info.pid : '-';
+                            }
+                            if (errEl) {
+                                errEl.innerText = info.error ? '⚠️ ' + info.error : '';
+                            }
+                        });
+                    }
+                })
+                .catch(console.error);
+        }
+
+        function revealRootPassword() {
+            fetch('/api/db/password')
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success) {
+                        document.getElementById('db-root-pwd').innerText = res.data;
+                    }
+                });
+        }
+
+        function resetRootPassword() {
+            if (confirm("Reset root password to a new random password?")) {
+                fetch('/api/db/password?action=reset')
+                    .then(r => r.json())
+                    .then(res => {
+                        if (res.success) {
+                            document.getElementById('db-root-pwd').innerText = res.data;
+                            showToast("Root password reset successfully");
+                        }
+                    });
+            }
+        }
+
+        function loadSites() {
+            fetch('/api/sites')
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success && res.data) {
+                        const tbody = document.getElementById('sites-tbody');
+                        tbody.innerHTML = `
+                            <tr>
+                                <td><strong>localhost</strong></td>
+                                <td><span class="badge badge-http">HTTP</span></td>
+                                <td><button class="btn btn-secondary" onclick="window.open('http://localhost', '_blank')">Open</button></td>
+                            </tr>
+                        `;
+                        res.data.forEach(siteName => {
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td><strong>${siteName}</strong></td>
+                                <td><span class="badge badge-https">VHost</span></td>
+                                <td><button class="btn btn-secondary" onclick="window.open('http://${siteName}', '_blank')">Open</button></td>
+                            `;
+                            tbody.appendChild(tr);
+                        });
+                    }
+                });
+        }
+
+        function loadDoctor() {
+            const container = document.getElementById('doctor-results');
+            container.innerText = "Diagnosing system...";
+            fetch('/api/doctor')
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success && res.data) {
+                        let html = '';
+                        res.data.Items.forEach(item => {
+                            const icon = item.Passed ? '✅' : (item.Critical ? '❌' : '⚠️');
+                            html += `<p>${icon} <strong>${item.Name}</strong><br><span style="color:var(--text-secondary); margin-left: 1.5rem;">${item.Message}</span></p>`;
+                        });
+                        container.innerHTML = html;
+                    }
+                });
+        }
+
+        setInterval(updateStatus, 2500);
+        updateStatus();
+    </script>
+</body>
+</html>
