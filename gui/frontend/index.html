@@ -215,12 +215,13 @@
                     <p>• Host: <strong>127.0.0.1</strong></p>
                     <p>• Port: <strong>3306</strong></p>
                     <p>• User: <strong>root</strong></p>
-                    <p>• Root Password: <strong id="db-root-pwd">••••••••••••••••••••••••</strong></p>
+                    <p>• Root Password: <strong id="db-root-pwd" style="background: rgba(56, 189, 248, 0.1); padding: 2px 8px; border-radius: 4px; font-family: monospace;">••••••••••••••••••••••••</strong></p>
                 </div>
-                <div class="card-actions" style="margin-top: 1rem;">
-                    <button class="btn btn-primary" onclick="revealRootPassword()">Reveal Password</button>
-                    <button class="btn btn-secondary" onclick="resetRootPassword()">Reset Password</button>
-                    <button class="btn btn-secondary" onclick="window.open('http://localhost/phpmyadmin', '_blank')">Open phpMyAdmin</button>
+                <div class="card-actions" style="margin-top: 1rem; flex-wrap: wrap;">
+                    <button class="btn btn-primary" onclick="revealRootPassword()">👁️ Reveal Password</button>
+                    <button class="btn btn-secondary" onclick="copyRootPassword()">📋 Copy Password</button>
+                    <button class="btn btn-secondary" onclick="resetRootPassword()">🔄 Reset Password</button>
+                    <button class="btn btn-secondary" onclick="window.open('http://localhost/phpmyadmin', '_blank')">🚀 Open phpMyAdmin</button>
                 </div>
             </div>
         </div>
@@ -348,14 +349,57 @@
                 .catch(console.error);
         }
 
+        let cachedPassword = "";
+
         function revealRootPassword() {
             fetch('/api/db/password')
                 .then(r => r.json())
                 .then(res => {
                     if (res.success) {
+                        cachedPassword = res.data;
                         document.getElementById('db-root-pwd').innerText = res.data;
                     }
                 });
+        }
+
+        function copyRootPassword() {
+            // If password is already revealed or fetched
+            if (cachedPassword) {
+                doCopy(cachedPassword);
+                return;
+            }
+
+            // If not yet revealed, fetch and copy directly
+            fetch('/api/db/password')
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success) {
+                        cachedPassword = res.data;
+                        document.getElementById('db-root-pwd').innerText = res.data;
+                        doCopy(res.data);
+                    }
+                })
+                .catch(err => showToast("Failed to fetch password: " + err, true));
+        }
+
+        function doCopy(text) {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast("Password copied to clipboard! 📋");
+                }).catch(() => fallbackCopy(text));
+            } else {
+                fallbackCopy(text);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const tempInput = document.createElement("input");
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+            showToast("Password copied to clipboard! 📋");
         }
 
         function resetRootPassword() {
